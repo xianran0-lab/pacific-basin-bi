@@ -19,14 +19,15 @@ const chartData = annualData.map(d => ({
 
 const tooltipStyle = {
   contentStyle: {
-    backgroundColor: '#161b22',
-    border: '1px solid #30363d',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e5e5e5',
     borderRadius: '8px',
     fontSize: '12px',
     padding: '10px 14px',
+    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
   },
-  labelStyle: { color: '#8b949e', fontWeight: 600, marginBottom: '6px' },
-  itemStyle: { color: '#e6edf3' },
+  labelStyle: { color: '#525252', fontWeight: 600, marginBottom: '6px' },
+  itemStyle: { color: '#171717' },
 }
 
 export default function OverviewTab() {
@@ -96,29 +97,76 @@ export default function OverviewTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((kpi, i) => (
-          <div key={i} className="bg-[#161b22] border border-[#30363d] rounded-lg p-4">
-            <p className="text-[#8b949e] text-xs font-medium uppercase tracking-wide">{kpi.label}</p>
-            <p className="text-[#e6edf3] text-xl font-bold mt-1 leading-tight">{kpi.value}</p>
-            <span className={`text-xs font-medium mt-1 inline-block ${kpi.positive ? 'text-[#3fb950]' : 'text-[#f85149]'}`}>
+          <div 
+            key={i} 
+            className="rounded-lg p-4 card-hover cursor-default"
+            style={{ 
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <p 
+              className="text-xs font-semibold uppercase tracking-wide"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              {kpi.label}
+            </p>
+            <p 
+              className="text-xl font-bold mt-1 leading-tight kpi-value"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {kpi.value}
+            </p>
+            <span 
+              className="text-xs font-medium mt-1 inline-block"
+              style={{ 
+                color: kpi.positive ? 'var(--accent-green)' : 'var(--accent-red)'
+              }}
+            >
               {kpi.badge}
             </span>
-            <p className="text-[#484f58] text-xs mt-0.5">{kpi.note}</p>
+            <p 
+              className="text-xs mt-0.5"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {kpi.note}
+            </p>
           </div>
         ))}
       </div>
 
       {/* Revenue / Profit Trend */}
-      <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-5">
+      <div 
+        className="rounded-lg p-5 card-hover"
+        style={{ 
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
+          boxShadow: 'var(--shadow-sm)'
+        }}
+      >
         <div className="mb-4">
-          <h2 className="text-[#e6edf3] font-semibold text-sm">Revenue, EBITDA & Net Income (2021–2024)</h2>
-          <p className="text-[#8b949e] text-xs mt-0.5">USD million — Super-cycle peak (2021–22) → Market normalization (2023–24)</p>
+          <h2 style={{ color: 'var(--text-primary)' }}>
+            Revenue, EBITDA & Net Income (2021–2024)
+          </h2>
+          <p 
+            className="text-xs mt-1"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            USD million — Super-cycle peak (2021–22) → Market normalization (2023–24)
+          </p>
         </div>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#21262d" vertical={false} />
-            <XAxis dataKey="year" tick={{ fill: '#8b949e', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
+            <XAxis 
+              dataKey="year" 
+              tick={{ fill: '#737373', fontSize: 12 }} 
+              axisLine={false} 
+              tickLine={false} 
+            />
             <YAxis
-              tick={{ fill: '#8b949e', fontSize: 11 }}
+              tick={{ fill: '#737373', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) => `$${v.toLocaleString()}M`}
@@ -128,21 +176,43 @@ export default function OverviewTab() {
               formatter={(value) => `$${(value as number).toFixed(0)}M`}
             />
             <Legend wrapperStyle={{ paddingTop: '12px', fontSize: '12px' }} />
-            <Bar dataKey="Revenue" fill="#58a6ff" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="EBITDA" fill="#3fb950" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="Net Income" fill="#f0883e" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Revenue" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="EBITDA" fill="#10b981" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Net Income" fill="#f59e0b" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Key Insights */}
-      <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-5">
-        <h2 className="text-[#e6edf3] font-semibold text-sm mb-3">Key Insights</h2>
-        <div className="grid sm:grid-cols-2 gap-2">
+      <div 
+        className="rounded-lg p-5"
+        style={{ 
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
+          boxShadow: 'var(--shadow-sm)'
+        }}
+      >
+        <h2 
+          className="mb-3"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Key Insights
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-3">
           {insights.map((insight, i) => (
-            <div key={i} className="flex gap-2 text-sm">
-              <span className="text-[#58a6ff] mt-0.5 flex-shrink-0">›</span>
-              <span className="text-[#8b949e]">{insight}</span>
+            <div 
+              key={i} 
+              className="flex gap-2 text-sm"
+            >
+              <span 
+                className="mt-0.5 flex-shrink-0"
+                style={{ color: 'var(--accent-blue)' }}
+              >
+                ›
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {insight}
+              </span>
             </div>
           ))}
         </div>
