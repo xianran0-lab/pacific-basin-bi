@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# Pacific Basin Shipping BI Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A data-driven business intelligence dashboard for Pacific Basin Shipping (2343.HK), built as a portfolio project to demonstrate end-to-end capabilities across data analysis, financial modeling, and interactive visualization.
 
-Currently, two official plugins are available:
+## Live Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+> Deploy link (coming soon)
 
-## React Compiler
+## Overview
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Pacific Basin is one of the world's leading Handysize and Supramax dry bulk shipping operators, headquartered in Hong Kong. This dashboard surfaces key operational and financial insights from their 2021–2024 annual reports across four analysis dimensions:
 
-## Expanding the ESLint configuration
+| Tab | Key Questions Answered |
+|-----|------------------------|
+| **Overview** | How did PB perform financially across the shipping cycle? |
+| **Market Intelligence** | How much does PB outperform the Baltic market index? |
+| **Cost & Profitability** | What is the safety margin above breakeven TCE? |
+| **Fleet Strategy** | How is the fleet structured, and what are shareholder returns? |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **React 19** + **TypeScript** — Vite 8
+- **Recharts** — all data visualizations
+- **Tailwind CSS v4** — utility-first styling
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev       # http://localhost:5173
+npm run build     # production build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Data Sources
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+All data is sourced from publicly available materials:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- Pacific Basin Annual Reports 2021–2024
+- Baltic Exchange (BHSI / BSI index values)
+- Clarksons Research / investor presentations
+
+Data is static and lives in `src/data/pbHistoricalData.ts`. No backend or API keys required.
+
+## Roadmap
+
+- [ ] Quarterly data for seasonality analysis
+- [ ] BDI / BHSI historical CSV integration
+- [ ] AIS real-time vessel position map (AISStream.io)
+- [ ] Peer comparison (Star Bulk, Golden Ocean)
+- [ ] Vercel deployment
+
+---
+
+*Portfolio project — not investment advice.*
