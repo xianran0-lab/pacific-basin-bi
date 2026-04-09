@@ -42,12 +42,11 @@ export default function App() {
           <div className="flex items-center justify-between gap-4">
             {/* Logo Section */}
             <div className="flex items-center gap-3 min-w-0">
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm transition-transform duration-150 hover:scale-105"
-                style={{ backgroundColor: 'var(--accent-blue)' }}
-              >
-                PB
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Pacific Basin"
+                className="w-10 h-10 rounded-lg flex-shrink-0 shadow-sm transition-transform duration-150 hover:scale-105 object-contain bg-white"
+              />
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 
