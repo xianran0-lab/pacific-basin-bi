@@ -40,6 +40,8 @@ interface VesselRecord {
 // Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+// Service role key required for writes (upsert_voyage RPC bypasses RLS)
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || supabaseKey;
 
 export default async function handler(
   req: VercelRequest,
@@ -143,9 +145,9 @@ async function fetchAndStoreAllData(): Promise<void> {
     }
   }
 
-  // Store in Supabase
+  // Store in Supabase via upsert_voyage RPC
   if (allRecords.length > 0) {
-    await storeInSupabase(allRecords);
+    await storeVoyages(allRecords);
   }
 }
 
@@ -251,41 +253,84 @@ function parseTimestamp(ts: string): string | undefined {
 }
 
 /**
- * Store records in Supabase
+ * Store vessel records via upsert_voyage RPC (v2 schema)
+ * Each record calls the stored procedure which deduplicates by IMO+ETA/ATA/ATD
  */
-async function storeInSupabase(records: VesselRecord[]): Promise<void> {
-  // Batch insert (Supabase has limit, so we chunk)
-  const chunkSize = 100;
-  
-  for (let i = 0; i < records.length; i += chunkSize) {
-    const chunk = records.slice(i, i + chunkSize);
-    
-    const response = await fetch(`${supabaseUrl}/rest/v1/hk_vessel_positions`, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseKey!,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'  // Upsert on conflict
-      },
-      body: JSON.stringify(chunk)
-    });
+async function storeVoyages(records: VesselRecord[]): Promise<void> {
+  if (!supabaseUrl || !supabaseServiceKey) return;
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Supabase insert error:', error);
-    } else {
-      console.log(`Stored chunk ${i / chunkSize + 1}: ${chunk.length} records`);
+  let stored = 0;
+  let errors = 0;
+
+  for (const record of records) {
+    // Map data_source → correct time slot
+    let p_eta: string | null = null;
+    let p_ata: string | null = null;
+    let p_atd: string | null = null;
+
+    switch (record.data_source) {
+      case 'expected':
+        p_eta = record.eta || null;
+        break;
+      case 'arrivals':
+      case 'in_port':
+        p_ata = record.arrival_time || null;
+        break;
+      case 'departures':
+        p_ata = record.arrival_time || null;
+        p_atd = record.atd_time || null;
+        break;
+    }
+
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/upsert_voyage`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseServiceKey!,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_imo_no:     record.imo_no     || null,
+          p_call_sign:  record.call_sign  || null,
+          p_vessel_name: record.vessel_name,
+          p_ship_type:  record.ship_type,
+          p_flag:       record.flag       || null,
+          p_eta,
+          p_ata,
+          p_atd,
+          p_location:   record.location   || null,
+          p_last_port:  record.last_port  || null,
+          p_last_berth: record.last_berth || null,
+          p_agent_name: record.agent_name || null,
+          p_status:     record.status     || null,
+          p_source_xml: record.data_source,
+          p_raw_data:   record,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`upsert_voyage failed for ${record.vessel_name}:`, await response.text());
+        errors++;
+      } else {
+        stored++;
+      }
+    } catch (err) {
+      console.error(`upsert_voyage error for ${record.vessel_name}:`, err);
+      errors++;
     }
   }
+
+  console.log(`storeVoyages: ${stored} stored, ${errors} errors`);
 }
 
 /**
- * Query data from Supabase
+ * Query data from Supabase (v2 schema: voyages table)
+ * Maps voyage rows back to VesselRecord format expected by the frontend
  */
 async function querySupabase(
-  action: string, 
-  type: string, 
+  _action: string,
+  type: string,
   hours: number
 ): Promise<any[]> {
   if (!supabaseUrl || !supabaseKey) {
@@ -293,37 +338,50 @@ async function querySupabase(
   }
 
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-  
-  let query = `${supabaseUrl}/rest/v1/hk_vessel_positions?recorded_at=gte.${encodeURIComponent(since)}`;
-  
+
+  // Query voyages updated within the time window
+  let query = `${supabaseUrl}/rest/v1/voyages?last_updated_at=gte.${encodeURIComponent(since)}`;
+
   // Filter by vessel type
   if (type !== 'all') {
-    const typeFilter = type === 'bulk' ? 'ilike.*BULK*' :
-                      type === 'container' ? 'ilike.*CONTAINER*' :
-                      type === 'tanker' ? 'ilike.*TANKER*' : '';
-    if (typeFilter) {
-      query += `&ship_type=${typeFilter}`;
-    }
+    const keyword = type === 'bulk' ? 'BULK' : type === 'container' ? 'CONTAINER' : 'TANKER';
+    query += `&ship_type=ilike.*${keyword}*`;
   }
-  
-  // Order by recorded time
-  query += '&order=recorded_at.desc';
-  
-  // Limit results
-  query += '&limit=500';
+
+  query += '&order=last_updated_at.desc&limit=500';
 
   const response = await fetch(query, {
     headers: {
       'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`
-    }
+      'Authorization': `Bearer ${supabaseKey}`,
+    },
   });
 
   if (!response.ok) {
     throw new Error(`Supabase query failed: ${response.status}`);
   }
 
-  return await response.json();
+  const voyages: any[] = await response.json();
+
+  // Map to VesselRecord shape for frontend compatibility
+  return voyages.map(v => ({
+    vessel_name: v.vessel_name,
+    imo_no:      v.imo_no,
+    call_sign:   v.call_sign,
+    ship_type:   v.ship_type || 'Unknown',
+    flag:        v.flag,
+    location:    v.location,
+    arrival_time: v.ata,
+    atd_time:    v.atd,
+    eta:         v.eta,
+    last_port:   v.last_port,
+    last_berth:  v.last_berth,
+    agent_name:  v.agent_name,
+    status:      v.status,
+    // Derive data_source from which timestamps are populated
+    data_source: v.atd ? 'departures' : v.ata ? 'in_port' : 'expected',
+    recorded_at: v.last_updated_at || v.first_seen_at,
+  }));
 }
 
 /**

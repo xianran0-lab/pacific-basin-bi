@@ -54,9 +54,8 @@ CREATE TABLE voyages (
   first_seen_at TIMESTAMP,    -- 首次记录时间
   last_updated_at TIMESTAMP,  -- 最后更新时间
   
-  -- 唯一约束：同一艘船同一时间只应有一个未完成航次
-  CONSTRAINT unique_active_voyage UNIQUE (imo_no, atd) 
-    WHERE atd IS NULL AND imo_no IS NOT NULL
+  -- voyage_key 全局唯一（在 CREATE TABLE 外用 CREATE UNIQUE INDEX 添加部分唯一约束）
+  UNIQUE (voyage_key)
 );
 
 -- 原始数据日志表（保留每次抓取的原始记录，用于调试和追溯）
@@ -84,12 +83,16 @@ CREATE TABLE raw_vessel_movements (
 -- 航次查询优化
 CREATE INDEX idx_voyages_vessel_id ON voyages(vessel_id);
 CREATE INDEX idx_voyages_imo_no ON voyages(imo_no);
-CREATE INDEX INDEX idx_voyages_time_range ON voyages(eta, ata, atd);
+CREATE INDEX idx_voyages_time_range ON voyages(eta, ata, atd);
 CREATE INDEX idx_voyages_last_updated ON voyages(last_updated_at DESC);
 
 -- 活跃航次查询（在港或即将到港）
-CREATE INDEX idx_voyages_active ON voyages(atd) 
+CREATE INDEX idx_voyages_active ON voyages(atd)
   WHERE atd IS NULL;
+
+-- 同一艘船同一时间只能有一个未完成航次（部分唯一索引，不能写在 CREATE TABLE 里）
+CREATE UNIQUE INDEX idx_voyages_unique_active ON voyages(imo_no)
+  WHERE atd IS NULL AND imo_no IS NOT NULL;
 
 -- 原始数据查询
 CREATE INDEX idx_raw_movements_voyage ON raw_vessel_movements(voyage_id);
@@ -168,6 +171,20 @@ CREATE TRIGGER trigger_calculate_anchorage_hours
   BEFORE INSERT OR UPDATE ON voyages
   FOR EACH ROW
   EXECUTE FUNCTION calculate_anchorage_hours();
+
+-- ============================================
+-- 辅助函数：向数组追加元素（去重）
+-- ============================================
+
+CREATE OR REPLACE FUNCTION array_append_unique(arr TEXT[], val TEXT)
+RETURNS TEXT[] AS $$
+BEGIN
+  IF val = ANY(arr) THEN
+    RETURN arr;
+  END IF;
+  RETURN array_append(arr, val);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 -- ============================================
 -- 函数：合并或更新航次（核心逻辑）
