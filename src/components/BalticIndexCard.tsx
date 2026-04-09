@@ -1,4 +1,4 @@
-import { useBalticIndices, BalticIndexData } from '../hooks/useBalticIndices';
+import { useBalticIndices } from '../hooks/useBalticIndices';
 import {
   LineChart,
   Line,
@@ -187,7 +187,7 @@ export default function BalticIndexCard({
             }}
             labelStyle={{ color: 'var(--text-tertiary)' }}
             itemStyle={{ color: 'var(--text-primary)' }}
-            formatter={(value: number) => [value.toLocaleString(), 'Close']}
+            formatter={(value) => [String(value), 'Close']}
             labelFormatter={(label) => new Date(label).toLocaleDateString()}
           />
           <ReferenceLine 
