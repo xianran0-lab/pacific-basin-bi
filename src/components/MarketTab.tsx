@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { annualData, tceOutperformance } from '../data/pbHistoricalData'
+import BalticIndexCard from './BalticIndexCard'
 
 const handysizeData = annualData.map(d => ({
   year: d.year.toString(),
@@ -47,6 +48,13 @@ const tooltipStyle = {
 export default function MarketTab() {
   return (
     <div className="space-y-5">
+      {/* Live Baltic Indices */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <BalticIndexCard symbol="^bdi" title="Baltic Dry Index (BDI)" />
+        <BalticIndexCard symbol="^bsi" title="Baltic Supramax (BSI)" />
+        <BalticIndexCard symbol="^bhsi" title="Baltic Handysize (BHSI)" />
+      </div>
+
       {/* Header */}
       <div 
         className="rounded-lg p-4 card-hover"
