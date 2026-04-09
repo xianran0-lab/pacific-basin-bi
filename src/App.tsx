@@ -3,8 +3,9 @@ import OverviewTab from './components/OverviewTab'
 import MarketTab from './components/MarketTab'
 import CostTab from './components/CostTab'
 import FleetTab from './components/FleetTab'
+import HKMarineTab from './components/HKMarineTab'
 
-type TabId = 'overview' | 'market' | 'cost' | 'fleet'
+type TabId = 'overview' | 'market' | 'cost' | 'fleet' | 'hk-marine'
 
 interface Tab {
   id: TabId
@@ -18,6 +19,7 @@ const tabs: Tab[] = [
   { id: 'market', label: 'Market', shortLabel: 'Market', subtitle: 'TCE & Index' },
   { id: 'cost', label: 'Cost', shortLabel: 'Cost', subtitle: 'Margin Analysis' },
   { id: 'fleet', label: 'Fleet', shortLabel: 'Fleet', subtitle: 'Structure & Returns' },
+  { id: 'hk-marine', label: 'HK Marine', shortLabel: 'HK Port', subtitle: 'Port Intelligence' },
 ]
 
 export default function App() {
@@ -147,6 +149,7 @@ export default function App() {
         {activeTab === 'market' && <MarketTab />}
         {activeTab === 'cost' && <CostTab />}
         {activeTab === 'fleet' && <FleetTab />}
+        {activeTab === 'hk-marine' && <HKMarineTab />}
       </main>
 
       {/* Footer */}
