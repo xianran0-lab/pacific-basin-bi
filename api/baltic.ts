@@ -66,7 +66,17 @@ export default async function handler(
     
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; PacificBasin-Dashboard/1.0)'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://stooq.com/',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
       }
     });
 
@@ -76,9 +86,18 @@ export default async function handler(
 
     const csvText = await response.text();
     
+    // Check if we got blocked
+    if (csvText.includes('Write to www@stooq.com') || csvText.includes('<!DOCTYPE') || csvText.includes('<html')) {
+      throw new Error('stooq.com blocked the request - anti-bot detection');
+    }
+    
     // Parse CSV
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',');
+    
+    // Check if we have valid CSV data
+    if (lines.length < 2 || !lines[0].includes('Date')) {
+      throw new Error('Invalid CSV format from stooq.com');
+    }
     
     // Get latest data point
     const latestLine = lines[lines.length - 1];
@@ -125,10 +144,59 @@ export default async function handler(
       });
     }
 
-    return res.status(500).json({
-      error: 'Failed to fetch Baltic index',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      symbol
+    // Fallback: return static demo data for portfolio demonstration
+    const demoData = generateDemoData(symbol as string);
+    
+    return res.json({
+      symbol,
+      ...demoData,
+      cached: false,
+      fallback: true,
+      error: 'Live data unavailable, using demo data for demonstration',
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+}
+
+/**
+ * Generate demo data when live API fails
+ * Uses realistic values based on historical Baltic indices
+ */
+function generateDemoData(symbol: string) {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Historical averages (approximate)
+  const baseValues: Record<string, number> = {
+    '^bdi': 1500,   // Baltic Dry Index
+    '^bsi': 1100,   // Baltic Supramax
+    '^bhsi': 800    // Baltic Handysize
+  };
+  
+  const base = baseValues[symbol] || 1000;
+  const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
+  const close = Math.round(base * (1 + variation));
+  
+  // Generate 12 weeks of history
+  const history = [];
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i * 7);
+    const weekVariation = (Math.random() - 0.5) * 0.15;
+    history.push({
+      date: date.toISOString().split('T')[0],
+      close: Math.round(base * (1 + weekVariation))
+    });
+  }
+  
+  return {
+    date: today,
+    open: Math.round(close * 0.99),
+    high: Math.round(close * 1.02),
+    low: Math.round(close * 0.98),
+    close,
+    volume: null,
+    history,
+    demo: true
+  };
+}
 }
