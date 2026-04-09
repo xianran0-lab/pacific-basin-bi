@@ -200,7 +200,7 @@ export default function HKMarineTab() {
                 paddingAngle={2}
                 dataKey="value"
               >
-                {vesselTypeData.map((entry, index) => (
+                {vesselTypeData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
