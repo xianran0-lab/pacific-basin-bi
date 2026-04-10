@@ -48,11 +48,20 @@ const tooltipStyle = {
 export default function MarketTab() {
   return (
     <div className="space-y-5">
-      {/* Live Baltic Indices */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <BalticIndexCard symbol="^bdi" title="Baltic Dry Index (BDI)" />
-        <BalticIndexCard symbol="^bsi" title="Baltic Supramax (BSI)" />
-        <BalticIndexCard symbol="^bhsi" title="Baltic Handysize (BHSI)" />
+      {/* Baltic Indices — annual averages from PB Annual Report */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <BalticIndexCard
+          title="Baltic Handysize Index (BHSI)"
+          subtitle="Annual average $/day · PB's primary benchmark"
+          color="var(--accent-blue)"
+          values={annualData.map(d => ({ year: d.year, value: d.bhsiIndex }))}
+        />
+        <BalticIndexCard
+          title="Baltic Supramax Index (BSI)"
+          subtitle="Annual average $/day · Supramax/Ultramax benchmark"
+          color="var(--accent-orange)"
+          values={annualData.map(d => ({ year: d.year, value: d.bsiIndex }))}
+        />
       </div>
 
       {/* Header */}
