@@ -84,12 +84,12 @@ export default function OverviewTab() {
   ]
 
   const insights = [
-    '2021-2022超级周期推动净利润超$10亿，2023-24年回归常态后仍保持盈利',
-    '四年累计收入$111.3亿、净利润$17.9亿，体现穿越周期的盈利韧性',
-    '2024年股东回报约$1.01亿（净利润的83%），包含回购$4,000万',
-    '2024年末净现金$1,970万，可用流动性$5.48亿，资产负债表健康',
-    'EBITDA margin从2021年34.5%降至2024年12.9%，反映市场正常化',
-    '2024年盈亏平衡TCE $8,820/天，实际$12,840/天，安全垫$4,020/天',
+    '2021–2022 super-cycle drove net profit above $1B; earnings held positive through 2023–24 normalisation',
+    'Four-year cumulative revenue $11.1B, net income $1.79B — demonstrating through-cycle earnings resilience',
+    '2024 shareholder returns ~$101M (83% of net income), including $40M in buybacks',
+    'Year-end 2024 net cash $19.7M, available liquidity $548M — balance sheet remains healthy',
+    'EBITDA margin compressed from 34.5% (2021) to 12.9% (2024), reflecting market normalisation',
+    '2024 breakeven TCE $8,820/day vs. actual $12,840/day — safety buffer of $4,020/day',
   ]
 
   return (
