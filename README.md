@@ -1,22 +1,23 @@
 # Pacific Basin Shipping BI Dashboard
 
-A data-driven business intelligence dashboard for Pacific Basin Shipping (2343.HK), built as a portfolio project to demonstrate end-to-end capabilities across data analysis, financial modeling, and interactive visualization.
+A data-driven business intelligence dashboard for Pacific Basin Shipping (2343.HK), built as a portfolio project showcasing end-to-end capabilities across financial analysis, data engineering, and interactive visualization.
 
-🔗 **Live Demo**: [pacific-basin-bi.vercel.app](https://pacific-basin-bi.vercel.app/)
+🔗 **Live Demo**: [pacific-basin-bi.vercel.app](https://pacific-basin-bi.vercel.app/)  
+👤 **By**: [Rex Xian](https://www.linkedin.com/in/rex-xian-resume/)
 
 ---
 
-## Overview
+## What It Does
 
-Pacific Basin is one of the world's leading Handysize and Supramax dry bulk shipping operators, headquartered in Hong Kong. This dashboard surfaces key operational and financial insights across five analysis dimensions:
+Pacific Basin is one of the world's leading Handysize and Supramax dry bulk shipping operators. This dashboard surfaces key business insights across five tabs:
 
-| Tab | Key Questions Answered |
-|-----|------------------------|
-| **Overview** | Financial performance across the shipping cycle (2021–2024) |
-| **Market Intelligence** | PB's TCE vs Baltic market index + real-time Baltic rates |
-| **Cost & Profitability** | Safety margin above breakeven TCE |
-| **Fleet Strategy** | Fleet structure and shareholder returns |
-| **HK Marine** | Real-time Hong Kong port vessel movements |
+| Tab | What You See |
+|-----|-------------|
+| **Overview** | Revenue, EBITDA, net income trend 2021–2024 · 6 key insights |
+| **Market** | PB TCE vs BHSI/BSI benchmarks · 4-year premium/discount analysis |
+| **Cost** | Breakeven TCE vs actual TCE · safety margin trend |
+| **Fleet** | Owned vs chartered fleet structure · cargo volume · dividends |
+| **HK Marine** | Live vessel movements from Hong Kong Marine Department |
 
 ---
 
@@ -24,56 +25,55 @@ Pacific Basin is one of the world's leading Handysize and Supramax dry bulk ship
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 19 + TypeScript + Vite 8 |
-| **Styling** | Tailwind CSS v4 |
-| **Charts** | Recharts |
-| **Backend** | Vercel Edge Functions |
-| **Database** | Supabase (PostgreSQL) |
-| **Deployment** | Vercel |
-
----
-
-## Getting Started
-
-```bash
-npm install
-npm run dev       # http://localhost:5173
-npm run build     # production build
-```
+| Frontend | React 19 + TypeScript + Vite 8 |
+| Styling | Tailwind CSS v4 |
+| Charts | Recharts |
+| API layer | Vercel Serverless Functions |
+| Database | Supabase (PostgreSQL) — HK Marine voyage history |
+| Deployment | Vercel |
 
 ---
 
 ## Data Sources
 
-### Financial Data (Static)
-- Pacific Basin Annual Reports 2021–2024
-- Clarksons Research / investor presentations
-- Data lives in `src/data/pbHistoricalData.ts`
+### Financial & Market Data (Static — from Annual Reports)
+All financial KPIs, TCE figures, Baltic index averages, fleet structure, and cost analysis come from **Pacific Basin Annual Reports 2021–2024**. Data lives in `src/data/pbHistoricalData.ts`.
 
-### Real-Time Data (Edge Functions)
+### Live Data (HK Marine Tab)
+The HK Marine tab fetches real-time vessel movement data from **Hong Kong Marine Department** public XML feeds:
 
-| Endpoint | Source | Update Frequency |
-|----------|--------|------------------|
-| `/api/baltic` | stooq.com | Real-time on request (cached 5 min) |
-| `/api/hk-marine` | HK Marine Department XML | Hourly batch sync to Supabase |
-| `/api/ais` | AISStream.io (planned) | Real-time WebSocket |
+| XML Feed | Content |
+|----------|---------|
+| `RP04005i.XML` | Expected arrivals (ETA) |
+| `RP05005i.XML` | Arrivals (ATA) |
+| `RP06005i.XML` | In port |
+| `RP05505i.XML` | Departures (ATD) |
 
-### HK Marine Data Architecture
+Vessel records are upserted into Supabase using a voyage-based schema that tracks each vessel's full port call lifecycle (Expected → Arrived → Departed). Historical data accumulates over time for trend analysis.
 
-Hong Kong Marine Department provides 4 XML feeds that represent a vessel's journey:
+---
 
+## Local Development
+
+```bash
+npm install
+npm run dev       # http://localhost:5173
+npm run build     # type-check + production build
+npm run lint
 ```
-Expected Arrivals (RP04005i) ──→ ETA ──┐
-                                       │
-Actual Arrivals (RP05005i) ────→ ATA ──┼──→ Voyage Record (航次)
-                                       │      (in/out timestamps)
-Departures (RP05505i) ─────────→ ATD ──┘
+
+### Environment Variables (optional)
+
+Only needed if you want HK Marine voyage data to persist in Supabase:
+
+```bash
+# .env.local
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-role-key   # required for writes
 ```
 
-Database design tracks **vessel voyages** (航次) as continuous flows, enabling:
-- Port stay duration calculation
-- Visit frequency analytics
-- Historical vessel movement patterns
+Without these, the HK Marine tab still works — it fetches live XML and returns it directly, just without database persistence.
 
 ---
 
@@ -81,31 +81,49 @@ Database design tracks **vessel voyages** (航次) as continuous flows, enabling
 
 ```
 pacific-basin-bi/
-├── api/                    # Vercel Edge Functions
-│   ├── baltic.ts          # Baltic index scraper
-│   ├── hk-marine.ts       # HK Marine XML → Supabase
-│   └── ais.ts             # AISStream integration (WIP)
+├── api/
+│   ├── baltic.ts          # Baltic index endpoint (currently unused by frontend)
+│   ├── hk-marine.ts       # HK Marine XML fetch + Supabase upsert
+│   └── ais.ts             # AIS vessel positions (demo data, not yet integrated)
 ├── src/
-│   ├── components/        # React components (5 tabs)
-│   ├── hooks/             # Custom hooks (useHKMarineData)
-│   └── data/              # Static financial data
-├── supabase-schema-v2.sql # Database schema
-└── README.md
+│   ├── components/        # 5 tab components + BalticIndexCard
+│   ├── hooks/             # useHKMarineData, useBalticIndices
+│   └── data/
+│       └── pbHistoricalData.ts   # All static financial data
+├── supabase-schema-v2.sql # Voyage-based database schema
+└── vercel.json            # SPA routing + API function config
 ```
+
+---
+
+## Supabase Schema
+
+The HK Marine feature uses a voyage-based schema designed to track vessel port calls across their full lifecycle:
+
+```
+Expected Arrivals XML ──→ ETA ──┐
+Arrivals XML          ──→ ATA ──┼──→ voyages table (deduped by voyage_key)
+In Port XML           ──→ ATA ──┤
+Departures XML        ──→ ATD ──┘
+```
+
+Key tables: `vessels`, `voyages`, `raw_vessel_movements`  
+Core function: `upsert_voyage()` — merges new data into existing voyage records.
+
+See `supabase-schema-v2.sql` for the full schema.
 
 ---
 
 ## Roadmap
 
-- [x] **Core dashboard** with financial KPIs
-- [x] **Baltic indices** real-time integration
-- [x] **HK Marine** port vessel tracking (v2 with voyage-based model)
-- [x] **Vercel deployment**
-- [ ] **AIS real-time** vessel position map
-- [ ] **Peer comparison** (Star Bulk, Golden Ocean)
-- [ ] **Quarterly data** for seasonality analysis
-- [ ] **BDI/BHSI historical** CSV integration
+- [x] Core dashboard — financial KPIs across the shipping cycle
+- [x] Baltic index cards — BHSI/BSI annual benchmarks with 4-year trend
+- [x] HK Marine — live vessel tracking with Supabase voyage history
+- [x] Vercel deployment with serverless API layer
+- [ ] AIS real-time vessel position map
+- [ ] Quarterly data toggle (seasonality analysis)
+- [ ] Peer comparison — Star Bulk, Golden Ocean
 
 ---
 
-*Portfolio project — not investment advice.*
+*Portfolio project · Not investment advice*

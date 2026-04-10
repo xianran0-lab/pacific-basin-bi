@@ -6,7 +6,7 @@ Generated from CEO Plan review on 2026-04-08
 
 ## Phase 1: Foundation (Ship This Week)
 
-### TODO-001: Deploy to Vercel
+### TODO-001: Deploy to Vercel ✅ DONE
 **What:** Configure Vercel deployment with SPA routing, custom domain or vercel.app subdomain
 **Why:** No live link = no portfolio piece; hiring manager needs a URL to click
 **Pros:** 
@@ -27,7 +27,7 @@ Generated from CEO Plan review on 2026-04-08
 
 ---
 
-### TODO-002: Live BDI/BSI/BHSI Integration
+### TODO-002: Baltic Index Integration ✅ DONE
 **What:** Integrate stooq.com CSV API for real-time Baltic indices with caching and error handling
 **Why:** Demonstrates real data integration skills; differentiator from static portfolios
 **Pros:** Live data "breathes"; shows API integration capability; industry-relevant metrics
@@ -78,7 +78,7 @@ Generated from CEO Plan review on 2026-04-08
 
 ## Phase 2: Domain Expertise (Week 2)
 
-### TODO-004: Hong Kong Marine Department Integration
+### TODO-004: Hong Kong Marine Department Integration ✅ DONE
 **What:** Scrape vessel arrival/departure data from mardep.gov.hk; parse XML/HTML
 **Why:** Leverages COSCO experience; unique Hong Kong angle; demonstrates government data integration
 **Pros:** Differentiator; shows domain knowledge; real port intelligence
