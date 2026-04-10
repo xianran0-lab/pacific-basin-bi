@@ -1,14 +1,15 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * Edge Function: Proxy Baltic Indices from stooq.com
- * 
+ * Edge Function: Proxy Baltic Indices from Yahoo Finance
+ *
  * Routes:
  * - /api/baltic?symbol=^bdi  (Baltic Dry Index)
  * - /api/baltic?symbol=^bsi  (Baltic Supramax Index)
  * - /api/baltic?symbol=^bhsi (Baltic Handysize Index)
- * 
- * Why proxy? stooq.com blocks CORS in browser. Server-side fetch works.
+ *
+ * Why proxy? Yahoo Finance blocks CORS in browser. Server-side fetch works.
+ * stooq.com was previous source but blocks Vercel server IPs.
  */
 
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours in ms
@@ -61,62 +62,67 @@ export default async function handler(
   }
 
   try {
-    // Fetch from stooq.com
-    const url = `https://stooq.com/q/d/l/?s=${encodeURIComponent(symbol as string)}&i=w`;
-    
+    // Map stooq-style symbols to Yahoo Finance symbols
+    const yahooSymbolMap: Record<string, string> = {
+      '^bdi': 'BDI',
+      '^bsi': 'BSI',
+      '^bhsi': 'BHSI',
+    };
+    const yahooSymbol = yahooSymbolMap[symbol as string] ?? (symbol as string).replace('^', '');
+
+    // Fetch 3 months of weekly data from Yahoo Finance
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1wk&range=3mo`;
+
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://stooq.com/',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Cache-Control': 'max-age=0'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://finance.yahoo.com/',
       }
     });
 
     if (!response.ok) {
-      throw new Error(`stooq.com returned ${response.status}`);
+      throw new Error(`Yahoo Finance returned ${response.status}`);
     }
 
-    const csvText = await response.text();
-    
-    // Check if we got blocked
-    if (csvText.includes('Write to www@stooq.com') || csvText.includes('<!DOCTYPE') || csvText.includes('<html')) {
-      throw new Error('stooq.com blocked the request - anti-bot detection');
+    const json = await response.json();
+    const result = json?.chart?.result?.[0];
+
+    if (!result) {
+      throw new Error('No data in Yahoo Finance response');
     }
-    
-    // Parse CSV
-    const lines = csvText.trim().split('\n');
-    
-    // Check if we have valid CSV data
-    if (lines.length < 2 || !lines[0].includes('Date')) {
-      throw new Error('Invalid CSV format from stooq.com');
+
+    const meta = result.meta;
+    const timestamps: number[] = result.timestamp ?? [];
+    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? [];
+    const opens: (number | null)[] = result.indicators?.quote?.[0]?.open ?? [];
+    const highs: (number | null)[] = result.indicators?.quote?.[0]?.high ?? [];
+    const lows: (number | null)[] = result.indicators?.quote?.[0]?.low ?? [];
+    const volumes: (number | null)[] = result.indicators?.quote?.[0]?.volume ?? [];
+
+    const history = timestamps
+      .map((ts, i) => ({
+        date: new Date(ts * 1000).toISOString().split('T')[0],
+        close: closes[i] ?? null,
+      }))
+      .filter(d => d.close !== null);
+
+    if (history.length === 0) {
+      throw new Error('Yahoo Finance returned empty history for ' + yahooSymbol);
     }
-    
-    // Get latest data point
-    const latestLine = lines[lines.length - 1];
-    const values = latestLine.split(',');
-    
+
+    const latest = history[history.length - 1];
+    const latestIdx = timestamps.length - 1;
+
     const data = {
-      date: values[0],
-      open: parseFloat(values[1]) || null,
-      high: parseFloat(values[2]) || null,
-      low: parseFloat(values[3]) || null,
-      close: parseFloat(values[4]) || null,
-      volume: parseFloat(values[5]) || null,
-      history: lines.slice(1).map(line => {
-        const v = line.split(',');
-        return {
-          date: v[0],
-          close: parseFloat(v[4]) || null
-        };
-      }).filter(d => d.close !== null)
+      date: latest.date,
+      open: opens[latestIdx] ?? null,
+      high: highs[latestIdx] ?? null,
+      low: lows[latestIdx] ?? null,
+      close: meta.regularMarketPrice ?? latest.close,
+      volume: volumes[latestIdx] ?? null,
+      history,
     };
 
     // Cache result
@@ -198,5 +204,4 @@ function generateDemoData(symbol: string) {
     history,
     demo: true
   };
-}
 }
