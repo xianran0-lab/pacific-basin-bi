@@ -63,14 +63,31 @@ export default async function handler(
   } = req.query;
 
   try {
-    // Check if we need to fetch fresh data
     const shouldFetchFresh = action === 'current' || action === 'refresh';
-    
+
     if (shouldFetchFresh) {
-      await fetchAndStoreAllData();
+      // Fetch all XML sources in parallel — do NOT await storage
+      const freshVessels = await fetchAllXML();
+
+      if (freshVessels.length > 0) {
+        // Store in background; don't block the response
+        storeVoyages(freshVessels).catch(err =>
+          console.error('Background storeVoyages error:', err)
+        );
+
+        return res.json({
+          success: true,
+          action,
+          type,
+          count: freshVessels.length,
+          data: freshVessels,
+          fetchedAt: new Date().toISOString(),
+          source: 'live'
+        });
+      }
     }
 
-    // Query data from Supabase
+    // Fallback: read from Supabase (history queries or when XML fetch returns empty)
     const data = await querySupabase(action as string, type as string, parseInt(hours as string));
 
     return res.json({
@@ -79,76 +96,54 @@ export default async function handler(
       type,
       count: Array.isArray(data) ? data.length : 0,
       data,
-      fetchedAt: new Date().toISOString()
+      fetchedAt: new Date().toISOString(),
+      source: 'supabase'
     });
 
   } catch (error) {
     console.error('HK Marine error:', error);
-    
-    // Return demo data if Supabase not configured
-    if (!supabaseUrl || !supabaseKey) {
-      return res.json({
-        success: true,
-        demo: true,
-        message: 'Supabase not configured, returning demo data',
-        data: generateDemoData(),
-        setup_required: {
-          supabase_url: 'Add SUPABASE_URL to environment variables',
-          supabase_key: 'Add SUPABASE_ANON_KEY to environment variables'
-        }
-      });
-    }
 
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+    // Return demo data if nothing else works
+    return res.json({
+      success: true,
+      demo: true,
+      data: generateDemoData(),
+      fetchedAt: new Date().toISOString()
     });
   }
 }
 
 /**
- * Fetch all XML sources and store in Supabase
+ * Fetch all 4 XML sources in parallel, return parsed VesselRecord[].
+ * Does NOT write to Supabase — caller decides what to do with the data.
  */
-async function fetchAndStoreAllData(): Promise<void> {
-  if (!supabaseUrl || !supabaseKey) {
-    console.log('Supabase not configured, skipping data storage');
-    return;
-  }
-
-  const allRecords: VesselRecord[] = [];
+async function fetchAllXML(): Promise<VesselRecord[]> {
   const recordedAt = new Date().toISOString();
 
-  for (const [sourceName, url] of Object.entries(XML_SOURCES)) {
-    try {
-      console.log(`Fetching ${sourceName} from ${url}`);
-      
+  const results = await Promise.allSettled(
+    Object.entries(XML_SOURCES).map(async ([sourceName, url]) => {
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; PacificBasin-Dashboard/1.0)',
           'Accept': 'application/xml,text/xml,*/*'
         }
       });
-
-      if (!response.ok) {
-        console.error(`Failed to fetch ${sourceName}: ${response.status}`);
-        continue;
-      }
-
+      if (!response.ok) throw new Error(`${sourceName}: HTTP ${response.status}`);
       const xmlText = await response.text();
-      const records = parseXML(xmlText, sourceName, recordedAt);
-      allRecords.push(...records);
-      
-      console.log(`Parsed ${records.length} records from ${sourceName}`);
+      return parseXML(xmlText, sourceName, recordedAt);
+    })
+  );
 
-    } catch (error) {
-      console.error(`Error fetching ${sourceName}:`, error);
+  const allRecords: VesselRecord[] = [];
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      allRecords.push(...result.value);
+    } else {
+      console.error('XML fetch failed:', result.reason);
     }
   }
 
-  // Store in Supabase via upsert_voyage RPC
-  if (allRecords.length > 0) {
-    await storeVoyages(allRecords);
-  }
+  return allRecords;
 }
 
 /**
