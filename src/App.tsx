@@ -77,17 +77,29 @@ export default function App() {
 
             {/* Header Stats - Hidden on small mobile */}
             <div className="hidden sm:block text-right flex-shrink-0">
-              <p 
+              <p
                 className="text-sm font-medium"
                 style={{ color: 'var(--text-primary)' }}
               >
                 2024 Annual Report Data
               </p>
-              <p 
+              <p
                 className="text-xs mt-0.5"
                 style={{ color: 'var(--text-tertiary)' }}
               >
                 277 vessels · 6 continents · 600+ customers
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                Demo by{' '}
+                <a
+                  href="https://www.linkedin.com/in/rex-xian-resume/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--text-muted)' }}
+                  className="underline underline-offset-2 hover:opacity-70 transition-opacity"
+                >
+                  Rex Xian
+                </a>
               </p>
             </div>
           </div>
@@ -153,15 +165,27 @@ export default function App() {
 
       {/* Footer */}
       <footer className="max-w-[1400px] mx-auto px-4 sm:px-6 pb-8 mt-4">
-        <div 
+        <div
           className="border-t pt-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between text-xs"
-          style={{ 
+          style={{
             borderColor: 'var(--border-primary)',
             color: 'var(--text-muted)'
           }}
         >
           <p>Data sources: Pacific Basin Annual Reports 2021–2024 · Baltic Exchange BHSI/BSI Index</p>
-          <p className="flex-shrink-0">Portfolio project · Not investment advice</p>
+          <p className="flex-shrink-0">
+            Demo project by{' '}
+            <a
+              href="https://www.linkedin.com/in/rex-xian-resume/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-muted)' }}
+              className="underline underline-offset-2 hover:opacity-70 transition-opacity"
+            >
+              Rex Xian
+            </a>
+            {' '}· Not investment advice
+          </p>
         </div>
       </footer>
     </div>
